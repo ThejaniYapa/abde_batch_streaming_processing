@@ -1,9 +1,8 @@
-version: "3.8"
+version: "2.4"
 
 networks:
   hadoop-net:
     driver: bridge
-    internal: true
 
 services:
   namenode:
@@ -14,12 +13,11 @@ services:
       - hadoop-net
     ports:
       - "9870:9870"
+    volumes:
+      - hadoop-namenode-data:/hadoopdata/hdfs/namenode
     command: >
-      bash -c "
-      hdfs namenode -format -force &&
-      hdfs --daemon start namenode &&
-      tail -f /dev/null
-      "
+      bash -c "if [ ! -d /hadoopdata/hdfs/namenode/current ]; then hdfs namenode -format -force; fi; hdfs namenode"
+
 
   datanode:
     build: .
@@ -29,12 +27,9 @@ services:
       - hadoop-net
     depends_on:
       - namenode
-    command: >
-      bash -c "
-      sleep 10 &&
-      hdfs --daemon start datanode &&
-      tail -f /dev/null
-      "
+    volumes:
+      - hadoop-datanode-data:/hadoopdata/hdfs/datanode
+    command: bash -c "hdfs datanode"
 
   resourcemanager:
     build: .
@@ -46,12 +41,7 @@ services:
       - "8088:8088"
     depends_on:
       - namenode
-    command: >
-      bash -c "
-      sleep 10 &&
-      yarn --daemon start resourcemanager &&
-      tail -f /dev/null
-      "
+    command: bash -c "yarn resourcemanager"
 
   nodemanager:
     build: .
@@ -61,9 +51,8 @@ services:
       - hadoop-net
     depends_on:
       - resourcemanager
-    command: >
-      bash -c "
-      sleep 15 &&
-      yarn --daemon start nodemanager &&
-      tail -f /dev/null
-      "
+    command: bash -c "yarn nodemanager"
+
+volumes:
+  hadoop-namenode-data:
+  hadoop-datanode-data:

@@ -1,6 +1,7 @@
 FROM eclipse-temurin:8-jdk
 
-ENV JAVA_HOME=/opt/java/openjdk
+ENV JAVA_HOME=/usr/lib/jvm/java-8-temurin-amd64
+ENV PATH=$PATH:$JAVA_HOME/bin
 ENV HADOOP_VERSION=3.3.6
 ENV HADOOP_HOME=/opt/hadoop
 ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
@@ -19,6 +20,7 @@ RUN ssh-keygen -t rsa -P "" -f ~/.ssh/id_rsa && \
 
 COPY config/* $HADOOP_HOME/etc/hadoop/
 
-RUN mkdir -p /hadoopdata/hdfs/namenode /hadoopdata/hdfs/datanode
+RUN mkdir -p /hadoopdata/hdfs/namenode /hadoopdata/hdfs/datanode && \
+    chown -R root:root /hadoopdata/hdfs
 
 CMD ["bash"]
