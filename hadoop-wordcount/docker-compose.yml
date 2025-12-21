@@ -1,0 +1,69 @@
+version: "3.8"
+
+networks:
+  hadoop-net:
+    driver: bridge
+    internal: true
+
+services:
+  namenode:
+    build: .
+    container_name: hadoop-namenode
+    hostname: namenode
+    networks:
+      - hadoop-net
+    ports:
+      - "9870:9870"
+    command: >
+      bash -c "
+      hdfs namenode -format -force &&
+      hdfs --daemon start namenode &&
+      tail -f /dev/null
+      "
+
+  datanode:
+    build: .
+    container_name: hadoop-datanode
+    hostname: datanode
+    networks:
+      - hadoop-net
+    depends_on:
+      - namenode
+    command: >
+      bash -c "
+      sleep 10 &&
+      hdfs --daemon start datanode &&
+      tail -f /dev/null
+      "
+
+  resourcemanager:
+    build: .
+    container_name: hadoop-resourcemanager
+    hostname: resourcemanager
+    networks:
+      - hadoop-net
+    ports:
+      - "8088:8088"
+    depends_on:
+      - namenode
+    command: >
+      bash -c "
+      sleep 10 &&
+      yarn --daemon start resourcemanager &&
+      tail -f /dev/null
+      "
+
+  nodemanager:
+    build: .
+    container_name: hadoop-nodemanager
+    hostname: nodemanager
+    networks:
+      - hadoop-net
+    depends_on:
+      - resourcemanager
+    command: >
+      bash -c "
+      sleep 15 &&
+      yarn --daemon start nodemanager &&
+      tail -f /dev/null
+      "

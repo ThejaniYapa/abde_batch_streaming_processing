@@ -1,0 +1,12 @@
+Docker Namespace: hadoop-cluster
+Docker Network:   hadoop-net (isolated)
+
+ ┌────────────┐      ┌────────────┐
+ │ NameNode   │◀────▶│ DataNode   │
+ └────────────┘      └────────────┘
+        │                    │
+        ▼                    ▼
+ ┌────────────┐      ┌────────────┐
+ │ Resource   │◀────▶│ NodeManager│
+ │ Manager    │      └────────────┘
+ └────────────┘
