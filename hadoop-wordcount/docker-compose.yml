@@ -14,6 +14,7 @@ services:
     ports:
       - "9870:9870"
     volumes:
+      - ./scripts:/scripts
       - hadoop-namenode-data:/hadoopdata/hdfs/namenode
     command: >
       bash -c "if [ ! -d /hadoopdata/hdfs/namenode/current ]; then hdfs namenode -format -force; fi; hdfs namenode"

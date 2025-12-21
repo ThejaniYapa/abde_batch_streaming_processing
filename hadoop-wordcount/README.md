@@ -23,6 +23,7 @@ sudo apt  install docker-compose
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ubuntu
+<!-- sudo usermod -aG docker $USER -->
 newgrp docker
 '''
 
@@ -51,35 +52,52 @@ chmod +x python/*.py
 ## Prepare Input Data
 echo "hello hadoop hello mapreduce hadoop" > input/input.txt
 
+# From host (assuming mapper.py and reducer.py are in current dir)
+docker cp python/mapper.py hadoop-namenode:/root/
+docker cp python/reducer.py hadoop-namenode:/root/
+docker cp input/input.txt hadoop-namenode:/tmp/input.txt
 
-Copy into NameNode:
+In NameNode:
 '''
 docker exec -it hadoop-namenode bash
 java -version
 '''
 Inside container:
 
-hdfs dfs -mkdir /input
-hdfs dfs -put /input/input.txt /input
 
+hdfs dfs -mkdir /input
+hdfs dfs -put /tmp/input.txt /input/
+hdfs dfs -ls /input
+
+
+hdfs dfs -rm -r /output
+ls -l /root/
+hdfs dfs -ls /output
+hdfs dfs -cat /output/part-00000
 ## Run Python MapReduce via Hadoop Streaming
 hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-*.jar \
--input /input \
--output /output \
--mapper python3 mapper.py \
--reducer python3 reducer.py \
--file mapper.py \
--file reducer.py
+  -input /input \
+  -output /output \
+  -mapper "python3 mapper.py" \
+  -reducer "python3 reducer.py" \
+  -file /root/mapper.py \
+  -file /root/reducer.py
+
 
 ## View Output
 hdfs dfs -cat /output/part-00000
 
 ## Monitoring (Optional)
 
-HDFS UI: http://EC2_IP:9870
+HDFS UI: http://54.187.110.63:9870
 
-YARN UI: http://EC2_IP:8088
+YARN UI: curl http://127.0.0.1:8088
 
+## Add more data
+ Upload local test file (assuming test.txt exists inside container)
+echo -e "hello world\nhello hadoop" > /root/test.txt
+ Put file into HDFS
+hdfs dfs -put /root/test.txt /input/
 ## Cleanup
 docker-compose down -v
 
@@ -172,3 +190,13 @@ Restart:
 
 docker start hadoop-nodemanager
 
+## Troubleshooting
+If you’re using Ubuntu, the instance may have ufw enabled:
+
+sudo ufw status
+
+
+If it’s active, allow port 8088:
+
+sudo ufw allow 8088/tcp
+sudo ufw reload
