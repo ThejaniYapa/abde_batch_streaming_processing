@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    container_name: storm-zookeeper
+    ports:
+      - "2181:2181"
+
+  nimbus:
+    build: .
+    container_name: storm-nimbus
+    command: storm nimbus
+    depends_on:
+      - zookeeper
+    environment:
+      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
+    volumes:
+      - ./storm_wordcount:/storm-topologies
+    ports:
+      - "6627:6627"
+
+  supervisor1:
+    build: .
+    container_name: storm-supervisor-1
+    command: storm supervisor
+    depends_on:
+      - nimbus
+      - zookeeper
+    environment:
+      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
+      STORM_NIMBUS_SEEDS: '["nimbus"]'
+
+  supervisor2:
+    build: .
+    container_name: storm-supervisor-2
+    command: storm supervisor
+    depends_on:
+      - nimbus
+      - zookeeper
+    environment:
+      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
+      STORM_NIMBUS_SEEDS: '["nimbus"]'
+
+  storm-ui:
+    build: .
+    container_name: storm-ui
+    command: storm ui
+    depends_on:
+      - nimbus
+    environment:
+      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
+      STORM_NIMBUS_SEEDS: '["nimbus"]'
+    ports:
+      - "8080:8080"
