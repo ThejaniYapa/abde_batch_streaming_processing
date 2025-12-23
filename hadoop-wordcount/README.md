@@ -200,3 +200,5 @@ If it’s active, allow port 8088:
 
 sudo ufw allow 8088/tcp
 sudo ufw reload
+
+docker exec -it hadoop-resourcemanager netstat -tulpn | grep 8088

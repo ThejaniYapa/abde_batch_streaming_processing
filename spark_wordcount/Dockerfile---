@@ -1,0 +1,17 @@
+# Dockerfile
+FROM apache/spark:3.5.1
+
+USER root
+
+# Create app directories
+RUN mkdir -p /opt/spark-apps /opt/spark-data
+
+# Copy application code
+COPY wordcount.py /opt/spark-apps/wordcount.py
+COPY data /opt/spark-data
+
+# Permissions
+RUN chmod -R 777 /opt/spark-apps /opt/spark-data
+
+USER spark
+WORKDIR /opt/spark-apps
