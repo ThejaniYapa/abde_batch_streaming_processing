@@ -9,11 +9,8 @@ spark-wordcount/
 ## Navigate to project folder
 cd spark-wordcount
 
-## Build Docker images
-docker-compose build
-
 ## Start cluster in detached mode
-docker-compose up -d
+docker-compose up -d --build
 
 verify Cluster
 docker ps
@@ -26,15 +23,16 @@ http://localhost:8080
 
 ## Submit WordCount Job
 docker exec -it spark-master bash
+ls apps/
+ls data/
 
 ## Submit job
-docker exec -it spark-master spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/wordcount.py
-docker exec -it spark-master spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/test.py
-docker exec -it spark-master spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/ml_pipeline.py
+spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/wordcount.py
+spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/test.py
+spark-submit --master spark://spark-master:7077 /opt/bitnami/spark/apps/ml_pipeline.py
 ## Notes for Isolation & Cleanup
 
 The cluster is fully isolated inside spark-network.
-
 Containers are named spark-master, spark-worker-1, spark-worker-2.
 
 ### To stop and remove the cluster:
