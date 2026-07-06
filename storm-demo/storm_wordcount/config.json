@@ -1,0 +1,23 @@
+{
+    "library": "",
+    "topology_specs": "topologies/",
+    "virtualenv_specs": "virtualenvs/",
+    "envs": {
+        "docker": {
+            "user": "storm",
+            "nimbus": "nimbus",
+            "workers": ["supervisor"],
+            "log": {
+                "path": "/logs",
+                "max_bytes": 1000000,
+                "backup_count": 10,
+                "level": "info"
+            },
+            "use_ssh_for_nimbus": false,
+            "use_virtualenv": false,
+            "install_virtualenv": false,
+            "virtualenv_root": "/data/virtualenvs",
+            "language": "py"
+        }
+    }
+}

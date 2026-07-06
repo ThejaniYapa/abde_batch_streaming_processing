@@ -1,55 +1,90 @@
-version: "3.8"
-
 services:
+  # ---------------------------------------------------------------------------
+  # Coordination
+  # ---------------------------------------------------------------------------
   zookeeper:
     image: zookeeper:3.8
     container_name: storm-zookeeper
-    ports:
-      - "2181:2181"
+    restart: always
+    networks:
+      - storm
 
+  # ---------------------------------------------------------------------------
+  # Storm control plane
+  # ---------------------------------------------------------------------------
   nimbus:
-    build: .
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.storm-python
+    image: storm-python:2.2.0
     container_name: storm-nimbus
     command: storm nimbus
     depends_on:
       - zookeeper
-    environment:
-      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
-    volumes:
-      - ./storm_wordcount:/storm-topologies
+    restart: always
     ports:
-      - "6627:6627"
+      - "6627:6627"          # Nimbus Thrift (used by `sparse submit`)
+    volumes:
+      - ./docker/storm.yaml:/conf/storm.yaml:ro
+      - nimbus-data:/data
+      - nimbus-logs:/logs
+    networks:
+      - storm
 
-  supervisor1:
-    build: .
-    container_name: storm-supervisor-1
+  supervisor:
+    image: storm-python:2.2.0
+    container_name: storm-supervisor
     command: storm supervisor
     depends_on:
       - nimbus
       - zookeeper
-    environment:
-      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
-      STORM_NIMBUS_SEEDS: '["nimbus"]'
+    restart: always
+    volumes:
+      - ./docker/storm.yaml:/conf/storm.yaml:ro
+      - supervisor-data:/data
+      - supervisor-logs:/logs
+    networks:
+      - storm
 
-  supervisor2:
-    build: .
-    container_name: storm-supervisor-2
-    command: storm supervisor
-    depends_on:
-      - nimbus
-      - zookeeper
-    environment:
-      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
-      STORM_NIMBUS_SEEDS: '["nimbus"]'
-
-  storm-ui:
-    build: .
+  ui:
+    image: storm-python:2.2.0
     container_name: storm-ui
     command: storm ui
     depends_on:
       - nimbus
-    environment:
-      STORM_ZOOKEEPER_SERVERS: '["zookeeper"]'
-      STORM_NIMBUS_SEEDS: '["nimbus"]'
+    restart: always
     ports:
-      - "8080:8080"
+      - "8080:8080"          # Storm UI  ->  http://<host>:8080
+    volumes:
+      - ./docker/storm.yaml:/conf/storm.yaml:ro
+    networks:
+      - storm
+
+  # ---------------------------------------------------------------------------
+  # Topology build / submit box
+  # ---------------------------------------------------------------------------
+  submitter:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.submitter
+    image: storm-submitter:latest
+    container_name: storm-submitter
+    depends_on:
+      - nimbus
+      - supervisor
+    volumes:
+      - ./storm_wordcount:/app          # the streamparse project
+      - lein-cache:/root/.m2            # cache Maven deps across runs
+    networks:
+      - storm
+
+networks:
+  storm:
+    driver: bridge
+
+volumes:
+  nimbus-data:
+  nimbus-logs:
+  supervisor-data:
+  supervisor-logs:
+  lein-cache:

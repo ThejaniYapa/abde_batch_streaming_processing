@@ -1,0 +1,21 @@
+storm.zookeeper.servers:
+  - "zookeeper"
+
+nimbus.seeds:
+  - "nimbus"
+
+storm.local.dir: "/data"
+
+# Worker slots exposed by each supervisor. One slot == one JVM worker.
+supervisor.slots.ports:
+  - 6700
+  - 6701
+  - 6702
+  - 6703
+
+ui.port: 8080
+
+# Give the multilang (Python) subprocesses a little more time to boot inside
+# a container before Storm considers them dead.
+supervisor.worker.timeout.secs: 60
+nimbus.task.launch.secs: 120

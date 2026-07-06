@@ -1,0 +1,21 @@
+# Build/submit box for the streamparse topology.
+#
+# `sparse submit` builds an uber-jar with Leiningen (JDK) and then talks Thrift
+# directly to Nimbus to upload + launch the topology. So this image needs:
+#   - a JDK + Leiningen (from the clojure base image)
+#   - Python 3 + streamparse
+FROM clojure:temurin-11-lein-2.11.2
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-pip \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# PEP 668: the Debian base marks the system env as "externally managed".
+RUN pip3 install --no-cache-dir --break-system-packages streamparse==4.1.2
+
+WORKDIR /app
+
+# The project directory is bind-mounted at runtime (see docker-compose.yml),
+# so we just idle here and let the operator drive `sparse` via `exec`.
+CMD ["sleep", "infinity"]

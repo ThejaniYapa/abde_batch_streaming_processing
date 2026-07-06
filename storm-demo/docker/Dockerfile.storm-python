@@ -1,0 +1,17 @@
+# Storm cluster node (nimbus / supervisor / ui) with Python + streamparse.
+#
+# The supervisor runs the Python spout/bolt subprocesses via Storm's multilang
+# protocol, so it needs a Python 3 interpreter and the `streamparse` runner on
+# PATH. Nimbus and the UI reuse the same image purely for simplicity.
+FROM storm:2.2.0
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-pip \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && pip3 install --no-cache-dir streamparse==4.1.2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Drop back to the unprivileged user the base image runs as.
+USER storm
