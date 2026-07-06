@@ -10,12 +10,15 @@ spark-wordcount/
 cd spark-wordcount
 
 ## Start cluster in detached mode
-docker-compose up -d --build
+docker compose up -d --build
 
 verify Cluster
 docker ps
 
-docker cp app/wordcount.py spark-master:/opt/spark-apps/test.py
+docker cp apps/wordcount.py spark-master:/opt/test.py
+
+
+ --------------docker cp apps/wordcount.py spark_wordcount-spark-master:/opt/spark-apps/test.py
 ## Open Spark UI:
 
 http://52.11.63.33:8080
