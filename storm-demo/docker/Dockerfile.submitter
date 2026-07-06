@@ -12,7 +12,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # PEP 668: the Debian base marks the system env as "externally managed".
-RUN pip3 install --no-cache-dir --break-system-packages streamparse==4.1.2
+#
+# `setuptools<66` is required: streamparse 4.1.2 calls
+# `pkg_resources.parse_version("")`, and packaging>=22 (vendored in
+# setuptools>=66) rejects the empty string with InvalidVersion. Pinning an
+# older setuptools keeps the legacy-tolerant `packaging` that streamparse needs.
+RUN pip3 install --no-cache-dir --break-system-packages \
+        "setuptools<66" \
+        "streamparse==4.1.2"
 
 WORKDIR /app
 
