@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# Apache Airflow — classroom demo stack (LocalExecutor)
+#
+# A deliberately *minimal* Airflow deployment for teaching:
+#   postgres          -> metadata database (the source of truth)
+#   airflow-init      -> one-shot: migrate DB + create the admin user
+#   airflow-scheduler -> the brain: parses DAGs and decides what runs when
+#   airflow-webserver -> the UI on http://localhost:8080
+#
+# The heavier "production" pieces (Redis + Celery workers + Flower) are omitted:
+# LocalExecutor runs tasks as subprocesses of the scheduler, which is plenty for
+# a demo and much easier to reason about.
+# ---------------------------------------------------------------------------
+
+x-airflow-common: &airflow-common
+  build: .
+  image: airflow-demo:2.10.4
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'        # hide the built-in example DAGs
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'    # let students view config in the UI
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: '15'  # pick up new DAG files fast
+  volumes:
+    - ./dags:/opt/airflow/dags       # your workflows (edit locally, no rebuild)
+    - ./logs:/opt/airflow/logs       # task logs, viewable in the UI
+    - ./plugins:/opt/airflow/plugins
+    - ./data:/opt/airflow/data       # demo input/output data
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # One-shot bootstrap: prepare the DB schema and create a login. Other services
+  # wait for this to finish successfully before starting.
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        echo "Running database migrations..."
+        airflow db migrate
+        echo "Creating admin user (admin / admin)..."
+        airflow users create \
+          --username admin --password admin \
+          --firstname Air --lastname Flow \
+          --role Admin --email admin@example.com || true
+        echo "Init complete."
+    restart: on-failure
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db-volume:

@@ -1,0 +1,16 @@
+order_id,category,product,quantity,unit_price
+1001,Electronics,Wireless Mouse,3,24.99
+1002,Books,Intro to Algorithms,2,79.50
+1003,Clothing,T-Shirt,5,14.00
+1004,Electronics,USB-C Cable,10,8.99
+1005,Home,Desk Lamp,2,32.75
+1006,Books,Clean Code,4,41.20
+1007,Electronics,Mechanical Keyboard,1,119.00
+1008,Clothing,Hoodie,3,39.99
+1009,Home,Coffee Mug,6,9.50
+1010,Electronics,Webcam,2,64.00
+1011,Books,Designing Data-Intensive Applications,3,55.00
+1012,Clothing,Sneakers,2,74.99
+1013,Home,Throw Pillow,4,19.99
+1014,Electronics,Monitor Stand,1,45.50
+1015,Books,The Pragmatic Programmer,2,49.99

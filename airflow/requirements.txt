@@ -1,0 +1,3 @@
+# Extra Python libraries used by the demo DAGs.
+# pandas powers the ETL transform in 02_taskflow_etl.py.
+pandas>=2.0,<3.0
