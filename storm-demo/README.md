@@ -412,6 +412,9 @@ Useful context when debugging:
 | First `sparse submit` is extremely slow | Leiningen is downloading Maven dependencies. They're cached in the `lein-cache` volume, so later submits are quick. Don't interrupt the first one. |
 | `sparse: command not found` | You're on the host, not in the container. Prefix with `docker compose exec submitter bash -lc "..."`. |
 | Version mismatch / Thrift errors on submit | The Storm image (`storm:2.2.0`), the jar deps in [`project.clj`](storm_wordcount/project.clj), and `streamparse==4.1.2` are pinned to match. If you bump one, bump them together. |
+| `Spout.spec() got an unexpected keyword argument 'parallelism'` | streamparse uses `par=`, not `parallelism=`, in `.spec()`. |
+| `lein jar` fails on an *insecure HTTP repository* (jboss.org) | [`project.clj`](storm_wordcount/project.clj) depends on the lightweight `storm-client` (not `storm-core`) precisely to avoid the `hadoop-auth → json-smart → jboss` chain that references an insecure repo. Keep it that way. |
+| `InvalidVersion: ''` or `pkgutil has no attribute 'ImpImporter'` during submit | streamparse 4.1.2 doesn't support Python 3.12. The submitter image runs **Python 3.10 + `setuptools<66`** on purpose — don't move it to a 3.12 base. |
 | Out-of-memory / instance freezes | Use at least a `t3.medium`; `t3.large` is more comfortable. |
 
 **Handy log commands:**
@@ -434,5 +437,6 @@ These versions are pinned to be mutually compatible. Change them together.
 | Apache Storm (jar deps) | 2.2.0 | [`storm_wordcount/project.clj`](storm_wordcount/project.clj) |
 | streamparse | 4.1.2 | both Dockerfiles + `requirements.txt` |
 | Zookeeper | 3.8 | [`docker-compose.yml`](docker-compose.yml) |
-| JDK (build box) | Temurin 11 | [`docker/Dockerfile.submitter`](docker/Dockerfile.submitter) |
-| Python (workers/build) | 3.x (Debian) | both Dockerfiles |
+| JDK (build box) | OpenJDK 11 | [`docker/Dockerfile.submitter`](docker/Dockerfile.submitter) |
+| Python (submitter) | 3.10 + `setuptools<66` | [`docker/Dockerfile.submitter`](docker/Dockerfile.submitter) (3.12 is incompatible with streamparse 4.1.2) |
+| Python (workers) | 3.x (from `storm:2.2.0`) | [`docker/Dockerfile.storm-python`](docker/Dockerfile.storm-python) |

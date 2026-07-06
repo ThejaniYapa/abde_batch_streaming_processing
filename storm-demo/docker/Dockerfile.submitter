@@ -1,25 +1,41 @@
 # Build/submit box for the streamparse topology.
 #
-# `sparse submit` builds an uber-jar with Leiningen (JDK) and then talks Thrift
-# directly to Nimbus to upload + launch the topology. So this image needs:
-#   - a JDK + Leiningen (from the clojure base image)
-#   - Python 3 + streamparse
-FROM clojure:temurin-11-lein-2.11.2
+# `sparse submit` builds a jar with Leiningen (JDK) and then talks Thrift
+# directly to Nimbus to upload + launch the topology. So this image needs a JDK,
+# Leiningen, Python, and streamparse.
+#
+# IMPORTANT — Python version: streamparse 4.1.2 (2021) is NOT compatible with
+# Python 3.12. It relies on `pkg_resources.parse_version("")`, which needs the
+# legacy-tolerant `packaging` from `setuptools<66`; but that old `pkg_resources`
+# uses `pkgutil.ImpImporter`, which was removed in Python 3.12. The only way to
+# satisfy both is to run on Python 3.8–3.11. We use the Python 3.10 base image
+# and add JDK 11 + Leiningen on top.
+FROM python:3.10-slim-bullseye
 
+# Leiningen refuses to run as root unless this is set.
+ENV LEIN_ROOT=1
+
+# JDK 11 (for `lein jar`), plus curl/git/build tools for Leiningen and any
+# streamparse deps that need to compile.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 python3-pip \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && apt-get install -y --no-install-recommends \
+        openjdk-11-jdk-headless \
+        curl \
+        git \
+        ca-certificates \
+        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# PEP 668: the Debian base marks the system env as "externally managed".
-#
-# `setuptools<66` is required: streamparse 4.1.2 calls
-# `pkg_resources.parse_version("")`, and packaging>=22 (vendored in
-# setuptools>=66) rejects the empty string with InvalidVersion. Pinning an
-# older setuptools keeps the legacy-tolerant `packaging` that streamparse needs.
-RUN pip3 install --no-cache-dir --break-system-packages \
-        "setuptools<66" \
-        "streamparse==4.1.2"
+# Install Leiningen and pre-download its self-install jar into the image so the
+# first `sparse submit` doesn't have to.
+RUN curl -fsSL https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein \
+        -o /usr/local/bin/lein \
+    && chmod +x /usr/local/bin/lein \
+    && lein version
+
+# setuptools<66 keeps the legacy-tolerant `packaging` that streamparse 4.1.2
+# expects (packaging>=22 rejects the empty version strings it passes).
+RUN pip install --no-cache-dir "setuptools<66" "streamparse==4.1.2"
 
 WORKDIR /app
 
